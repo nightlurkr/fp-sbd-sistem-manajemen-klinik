@@ -1,4 +1,4 @@
-markdown# Sistem Manajemen Klinik
+# Sistem Manajemen Klinik
 
 Final Project Sistem Basis Data — Institut Teknologi Sepuluh Nopember
 
