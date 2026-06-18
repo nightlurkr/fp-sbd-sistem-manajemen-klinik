@@ -8,6 +8,7 @@ Institut Teknologi Sepuluh Nopember (ITS) Surabaya, 2026
 | NRP | Nama |
 |-----|------|
 | 5027231046 | Ryan Adya Purwanto |
+| 5027231067 | Muhammad Yusuf |
 
 ## Deskripsi Project
 
