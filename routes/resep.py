@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 from database import get_db
 from models import Resep, Detail_Resep, Obat, Kunjungan
+from utils import validate_id
 from datetime import date
 
 router = APIRouter()
@@ -22,56 +23,46 @@ class ResepRequest(BaseModel):
 
 @router.get("/{id_kunjungan}")
 def get_resep(id_kunjungan: str, db: Session = Depends(get_db)):
-    resep = db.query(Resep).filter(
-        Resep.ID_Kunjungan == id_kunjungan
-    ).first()
-
+    validate_id(id_kunjungan, "KNJ")
+    resep = db.query(Resep).filter(Resep.ID_Kunjungan == id_kunjungan).first()
     if not resep:
         raise HTTPException(status_code=404, detail="Resep tidak ditemukan")
-
-    detail = db.query(Detail_Resep).filter(
-        Detail_Resep.ID_Resep == resep.ID_Resep
-    ).all()
-
+    detail = db.query(Detail_Resep).filter(Detail_Resep.ID_Resep == resep.ID_Resep).all()
     return {
         "ID_Resep": resep.ID_Resep,
         "ID_Kunjungan": resep.ID_Kunjungan,
         "ID_Dokter": resep.ID_Dokter,
         "tanggal": resep.tanggal,
         "detail_obat": [
-            {
-                "ID_Obat": d.ID_Obat,
-                "jumlah": d.jumlah,
-                "dosis": d.dosis,
-                "aturan_pakai": d.aturan_pakai
-            }
+            {"ID_Obat": d.ID_Obat, "jumlah": d.jumlah,
+             "dosis": d.dosis, "aturan_pakai": d.aturan_pakai}
             for d in detail
         ]
     }
 
 @router.post("/")
 def buat_resep(request: ResepRequest, db: Session = Depends(get_db)):
+    validate_id(request.ID_Resep, "RES")
+    validate_id(request.ID_Kunjungan, "KNJ")
+    for item in request.obat_list:
+        validate_id(item.id_detail, "DTL")
+        validate_id(item.id_obat, "OBT")
+
     kunjungan = db.query(Kunjungan).filter(
         Kunjungan.ID_Kunjungan == request.ID_Kunjungan
     ).first()
-
     if not kunjungan:
         raise HTTPException(status_code=404, detail="Kunjungan tidak ditemukan")
 
-    # Cek stok dan expired semua obat dulu
     for item in request.obat_list:
         obat = db.query(Obat).filter(Obat.ID_Obat == item.id_obat).first()
-
         if not obat:
             raise HTTPException(status_code=404, detail=f"Obat {item.id_obat} tidak ditemukan")
-
         if obat.stok < item.jumlah:
             raise HTTPException(status_code=400, detail=f"Stok {obat.nama} tidak cukup. Stok tersedia: {obat.stok}")
-
         if obat.expired_date and obat.expired_date < date.today():
             raise HTTPException(status_code=400, detail=f"Obat {obat.nama} sudah kadaluarsa")
 
-    # Buat resep
     resep_baru = Resep(
         ID_Resep=request.ID_Resep,
         ID_Kunjungan=request.ID_Kunjungan,
@@ -79,12 +70,10 @@ def buat_resep(request: ResepRequest, db: Session = Depends(get_db)):
         tanggal=date.today()
     )
     db.add(resep_baru)
-    db.flush()  # ← tambahkan ini
+    db.flush()
 
-    # Buat detail resep dan kurangi stok
     for item in request.obat_list:
         obat = db.query(Obat).filter(Obat.ID_Obat == item.id_obat).first()
-
         detail = Detail_Resep(
             ID_Detail=item.id_detail,
             ID_Resep=request.ID_Resep,
@@ -97,3 +86,4 @@ def buat_resep(request: ResepRequest, db: Session = Depends(get_db)):
         obat.stok = obat.stok - item.jumlah
 
     db.commit()
+    return {"message": "Resep berhasil dibuat", "ID_Resep": request.ID_Resep}

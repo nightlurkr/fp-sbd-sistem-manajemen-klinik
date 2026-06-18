@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database import get_db
 from models import Poli
+from utils import validate_id
 
 router = APIRouter()
 
@@ -11,6 +12,7 @@ def get_all_poli(db: Session = Depends(get_db)):
 
 @router.get("/{id_poli}")
 def get_poli(id_poli: str, db: Session = Depends(get_db)):
+    validate_id(id_poli, "POL")
     poli = db.query(Poli).filter(Poli.ID_Poli == id_poli).first()
     if not poli:
         raise HTTPException(status_code=404, detail="Poli tidak ditemukan")
@@ -22,6 +24,7 @@ def tambah_poli(
     no_ruangan: str = None, status: str = "aktif",
     db: Session = Depends(get_db)
 ):
+    validate_id(ID_Poli, "POL")
     poli_baru = Poli(
         ID_Poli=ID_Poli, nama_poli=nama_poli,
         no_ruangan=no_ruangan, status=status
@@ -37,6 +40,7 @@ def update_poli(
     no_ruangan: str = None, status: str = None,
     db: Session = Depends(get_db)
 ):
+    validate_id(id_poli, "POL")
     poli = db.query(Poli).filter(Poli.ID_Poli == id_poli).first()
     if not poli:
         raise HTTPException(status_code=404, detail="Poli tidak ditemukan")
@@ -49,6 +53,7 @@ def update_poli(
 
 @router.delete("/{id_poli}")
 def hapus_poli(id_poli: str, db: Session = Depends(get_db)):
+    validate_id(id_poli, "POL")
     poli = db.query(Poli).filter(Poli.ID_Poli == id_poli).first()
     if not poli:
         raise HTTPException(status_code=404, detail="Poli tidak ditemukan")

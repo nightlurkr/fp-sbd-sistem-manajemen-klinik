@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional, Dict
 from database import get_mongo
+from utils import validate_id
 
 router = APIRouter()
 
@@ -19,26 +20,25 @@ class RekamMedisRequest(BaseModel):
 
 @router.get("/{id_pasien}")
 def get_rekam_medis(id_pasien: str):
+    validate_id(id_pasien, "PSN")
     mongo = get_mongo()
-    hasil = list(mongo.rekam_medis.find(
-        {"id_pasien": id_pasien},
-        {"_id": 0}
-    ))
+    hasil = list(mongo.rekam_medis.find({"id_pasien": id_pasien}, {"_id": 0}))
     return hasil
 
 @router.get("/kunjungan/{id_kunjungan}")
 def get_rekam_medis_by_kunjungan(id_kunjungan: str):
+    validate_id(id_kunjungan, "KNJ")
     mongo = get_mongo()
-    hasil = mongo.rekam_medis.find_one(
-        {"id_kunjungan": id_kunjungan},
-        {"_id": 0}
-    )
+    hasil = mongo.rekam_medis.find_one({"id_kunjungan": id_kunjungan}, {"_id": 0})
     if not hasil:
         raise HTTPException(status_code=404, detail="Rekam medis tidak ditemukan")
     return hasil
 
 @router.post("/")
 def tambah_rekam_medis(request: RekamMedisRequest):
+    validate_id(request.id_kunjungan, "KNJ")
+    validate_id(request.id_pasien, "PSN")
+    validate_id(request.id_dokter, "DOK")
     mongo = get_mongo()
     data = request.model_dump()
     mongo.rekam_medis.insert_one(data)
@@ -46,6 +46,9 @@ def tambah_rekam_medis(request: RekamMedisRequest):
 
 @router.put("/{id_kunjungan}")
 def update_rekam_medis(id_kunjungan: str, request: RekamMedisRequest):
+    validate_id(id_kunjungan, "KNJ")
+    validate_id(request.id_pasien, "PSN")
+    validate_id(request.id_dokter, "DOK")
     mongo = get_mongo()
     result = mongo.rekam_medis.update_one(
         {"id_kunjungan": id_kunjungan},
@@ -57,6 +60,7 @@ def update_rekam_medis(id_kunjungan: str, request: RekamMedisRequest):
 
 @router.delete("/{id_kunjungan}")
 def hapus_rekam_medis(id_kunjungan: str):
+    validate_id(id_kunjungan, "KNJ")
     mongo = get_mongo()
     result = mongo.rekam_medis.delete_one({"id_kunjungan": id_kunjungan})
     if result.deleted_count == 0:

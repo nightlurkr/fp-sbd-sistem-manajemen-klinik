@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
 from database import get_mongo
+from utils import validate_id
 
 router = APIRouter()
 
@@ -17,11 +18,11 @@ class InfoObatRequest(BaseModel):
 @router.get("/")
 def get_all_info_obat():
     mongo = get_mongo()
-    hasil = list(mongo.info_obat.find({}, {"_id": 0}))
-    return hasil
+    return list(mongo.info_obat.find({}, {"_id": 0}))
 
 @router.get("/{id_obat}")
 def get_info_obat(id_obat: str):
+    validate_id(id_obat, "OBT")
     mongo = get_mongo()
     info = mongo.info_obat.find_one({"id_obat": id_obat}, {"_id": 0})
     if not info:
@@ -30,6 +31,7 @@ def get_info_obat(id_obat: str):
 
 @router.post("/")
 def tambah_info_obat(request: InfoObatRequest):
+    validate_id(request.id_obat, "OBT")
     mongo = get_mongo()
     data = request.model_dump()
     mongo.info_obat.insert_one(data)
@@ -37,6 +39,8 @@ def tambah_info_obat(request: InfoObatRequest):
 
 @router.put("/{id_obat}")
 def update_info_obat(id_obat: str, request: InfoObatRequest):
+    validate_id(id_obat, "OBT")
+    validate_id(request.id_obat, "OBT")
     mongo = get_mongo()
     result = mongo.info_obat.update_one(
         {"id_obat": id_obat},
@@ -48,6 +52,7 @@ def update_info_obat(id_obat: str, request: InfoObatRequest):
 
 @router.delete("/{id_obat}")
 def hapus_info_obat(id_obat: str):
+    validate_id(id_obat, "OBT")
     mongo = get_mongo()
     result = mongo.info_obat.delete_one({"id_obat": id_obat})
     if result.deleted_count == 0:

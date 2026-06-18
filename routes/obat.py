@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database import get_db
 from models import Obat
+from utils import validate_id
 
 router = APIRouter()
 
@@ -15,6 +16,7 @@ def get_stok_menipis(db: Session = Depends(get_db)):
 
 @router.get("/{id_obat}")
 def get_obat(id_obat: str, db: Session = Depends(get_db)):
+    validate_id(id_obat, "OBT")
     return db.query(Obat).filter(Obat.ID_Obat == id_obat).first()
 
 @router.post("/")
@@ -25,6 +27,7 @@ def tambah_obat(
     expired_date: str = None,
     db: Session = Depends(get_db)
 ):
+    validate_id(ID_Obat, "OBT")
     obat_baru = Obat(
         ID_Obat=ID_Obat, nama=nama, satuan=satuan,
         harga=harga, stok=stok, stok_minimum=stok_minimum,
@@ -43,6 +46,7 @@ def update_obat(
     manufactured_date: str = None, expired_date: str = None,
     db: Session = Depends(get_db)
 ):
+    validate_id(id_obat, "OBT")
     obat = db.query(Obat).filter(Obat.ID_Obat == id_obat).first()
     if not obat:
         raise HTTPException(status_code=404, detail="Obat tidak ditemukan")
@@ -57,20 +61,19 @@ def update_obat(
     return obat
 
 @router.put("/{id_obat}/stok")
-def update_stok(
-    id_obat: str, jumlah: int,
-    db: Session = Depends(get_db)
-):
+def update_stok(id_obat: str, jumlah: int, db: Session = Depends(get_db)):
+    validate_id(id_obat, "OBT")
     obat = db.query(Obat).filter(Obat.ID_Obat == id_obat).first()
     if not obat:
         raise HTTPException(status_code=404, detail="Obat tidak ditemukan")
     obat.stok = obat.stok + jumlah
     db.commit()
     db.refresh(obat)
-    return { "message": "Stok berhasil diupdate", "stok_sekarang": obat.stok }
+    return {"message": "Stok berhasil diupdate", "stok_sekarang": obat.stok}
 
 @router.delete("/{id_obat}")
 def hapus_obat(id_obat: str, db: Session = Depends(get_db)):
+    validate_id(id_obat, "OBT")
     obat = db.query(Obat).filter(Obat.ID_Obat == id_obat).first()
     if not obat:
         raise HTTPException(status_code=404, detail="Obat tidak ditemukan")

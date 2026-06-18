@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database import get_db
 from models import Tagihan, Pembayaran
+from utils import validate_id
 
 router = APIRouter()
 
@@ -11,6 +12,7 @@ def get_all_tagihan(db: Session = Depends(get_db)):
 
 @router.get("/{id_kunjungan}")
 def get_tagihan_kunjungan(id_kunjungan: str, db: Session = Depends(get_db)):
+    validate_id(id_kunjungan, "KNJ")
     return db.query(Tagihan).filter(Tagihan.ID_Kunjungan == id_kunjungan).first()
 
 @router.post("/")
@@ -19,6 +21,8 @@ def tambah_tagihan(
     total: float, tanggal: str,
     db: Session = Depends(get_db)
 ):
+    validate_id(ID_Tagihan, "TAG")
+    validate_id(ID_Kunjungan, "KNJ")
     tagihan_baru = Tagihan(
         ID_Tagihan=ID_Tagihan,
         ID_Kunjungan=ID_Kunjungan,
@@ -40,9 +44,18 @@ def bayar_tagihan(
     ID_Staff: str = None,
     db: Session = Depends(get_db)
 ):
-    tagihan = db.query(Tagihan).filter(Tagihan.ID_Tagihan == id_tagihan).first()
-    tagihan.status_bayar = "lunas"
+    validate_id(id_tagihan, "TAG")
+    validate_id(ID_Pembayaran, "PAY")
+    if ID_Staff:
+        validate_id(ID_Staff, "STF")
 
+    tagihan = db.query(Tagihan).filter(Tagihan.ID_Tagihan == id_tagihan).first()
+    if not tagihan:
+        raise HTTPException(status_code=404, detail="Tagihan tidak ditemukan")
+    if tagihan.status_bayar == "lunas":
+        raise HTTPException(status_code=400, detail="Tagihan sudah lunas")
+
+    tagihan.status_bayar = "lunas"
     pembayaran_baru = Pembayaran(
         ID_Pembayaran=ID_Pembayaran,
         ID_Tagihan=id_tagihan,
@@ -54,4 +67,4 @@ def bayar_tagihan(
     db.add(pembayaran_baru)
     db.commit()
     db.refresh(tagihan)
-    return { "message": "Pembayaran berhasil", "tagihan": id_tagihan, "status": "lunas" }
+    return {"message": "Pembayaran berhasil", "tagihan": id_tagihan, "status": "lunas"}

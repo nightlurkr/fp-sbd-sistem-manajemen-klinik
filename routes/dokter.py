@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database import get_db
 from models import Dokter
+from utils import validate_id
 
 router = APIRouter()
 
@@ -11,6 +12,7 @@ def get_all_dokter(db: Session = Depends(get_db)):
 
 @router.get("/{id_dokter}")
 def get_dokter(id_dokter: str, db: Session = Depends(get_db)):
+    validate_id(id_dokter, "DOK")
     dokter = db.query(Dokter).filter(Dokter.ID_Dokter == id_dokter).first()
     if not dokter:
         raise HTTPException(status_code=404, detail="Dokter tidak ditemukan")
@@ -23,6 +25,8 @@ def tambah_dokter(
     no_telepon: str = None,
     db: Session = Depends(get_db)
 ):
+    validate_id(ID_Dokter, "DOK")
+    validate_id(ID_Poli, "POL")
     dokter_baru = Dokter(
         ID_Dokter=ID_Dokter, ID_Poli=ID_Poli,
         nama=nama, spesialisasi=spesialisasi,
@@ -39,6 +43,7 @@ def update_dokter(
     spesialisasi: str = None, no_telepon: str = None,
     db: Session = Depends(get_db)
 ):
+    validate_id(id_dokter, "DOK")
     dokter = db.query(Dokter).filter(Dokter.ID_Dokter == id_dokter).first()
     if not dokter:
         raise HTTPException(status_code=404, detail="Dokter tidak ditemukan")
@@ -51,6 +56,7 @@ def update_dokter(
 
 @router.delete("/{id_dokter}")
 def hapus_dokter(id_dokter: str, db: Session = Depends(get_db)):
+    validate_id(id_dokter, "DOK")
     dokter = db.query(Dokter).filter(Dokter.ID_Dokter == id_dokter).first()
     if not dokter:
         raise HTTPException(status_code=404, detail="Dokter tidak ditemukan")

@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database import get_db
 from models import Antrian, Jadwal_Praktik
+from utils import validate_id
 from datetime import date
 
 router = APIRouter()
@@ -12,6 +13,7 @@ def get_all_antrian(db: Session = Depends(get_db)):
 
 @router.get("/{id_jadwal}")
 def get_antrian(id_jadwal: str, db: Session = Depends(get_db)):
+    validate_id(id_jadwal, "JDW")
     return db.query(Antrian).filter(
         Antrian.ID_Jadwal == id_jadwal,
         Antrian.tanggal == date.today()
@@ -26,29 +28,30 @@ def daftar_antrian(
     ID_Staff: str = None,
     db: Session = Depends(get_db)
 ):
-    # Cek jadwal ada atau tidak
+    validate_id(ID_Antrian, "ANT")
+    validate_id(ID_Pasien, "PSN")
+    validate_id(ID_Jadwal, "JDW")
+    if ID_Staff:
+        validate_id(ID_Staff, "STF")
+
     jadwal = db.query(Jadwal_Praktik).filter(
         Jadwal_Praktik.ID_Jadwal == ID_Jadwal
     ).first()
-
     if not jadwal:
         raise HTTPException(status_code=404, detail="Jadwal tidak ditemukan")
 
-    # Hitung antrian yang sudah ada hari ini
     antrian_hari_ini = db.query(Antrian).filter(
         Antrian.ID_Jadwal == ID_Jadwal,
         Antrian.tanggal == tanggal,
         Antrian.status != "batal"
     ).count()
 
-    # Cek kuota
     if antrian_hari_ini >= jadwal.kuota:
         raise HTTPException(
             status_code=400,
             detail=f"Kuota jadwal penuh. Maksimal {jadwal.kuota} pasien per hari"
         )
 
-    # Auto-generate nomor antrian
     nomor_baru = antrian_hari_ini + 1
 
     antrian_baru = Antrian(
@@ -70,23 +73,16 @@ def daftar_antrian(
     }
 
 @router.put("/{id_antrian}/panggil")
-def panggil_antrian(
-    id_antrian: str,
-    db: Session = Depends(get_db)
-):
-    antrian = db.query(Antrian).filter(
-        Antrian.ID_Antrian == id_antrian
-    ).first()
-
+def panggil_antrian(id_antrian: str, db: Session = Depends(get_db)):
+    validate_id(id_antrian, "ANT")
+    antrian = db.query(Antrian).filter(Antrian.ID_Antrian == id_antrian).first()
     if not antrian:
         raise HTTPException(status_code=404, detail="Antrian tidak ditemukan")
-
     if antrian.status != "menunggu":
         raise HTTPException(
             status_code=400,
             detail=f"Antrian tidak bisa dipanggil, status saat ini: {antrian.status}"
         )
-
     antrian.status = "dalam_proses"
     db.commit()
     db.refresh(antrian)
@@ -96,17 +92,11 @@ def panggil_antrian(
     }
 
 @router.put("/{id_antrian}/batal")
-def batal_antrian(
-    id_antrian: str,
-    db: Session = Depends(get_db)
-):
-    antrian = db.query(Antrian).filter(
-        Antrian.ID_Antrian == id_antrian
-    ).first()
-
+def batal_antrian(id_antrian: str, db: Session = Depends(get_db)):
+    validate_id(id_antrian, "ANT")
+    antrian = db.query(Antrian).filter(Antrian.ID_Antrian == id_antrian).first()
     if not antrian:
         raise HTTPException(status_code=404, detail="Antrian tidak ditemukan")
-
     antrian.status = "batal"
     db.commit()
     db.refresh(antrian)

@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database import get_db
 from models import Jadwal_Praktik
+from utils import validate_id
 
 router = APIRouter()
 
@@ -11,6 +12,7 @@ def get_all_jadwal(db: Session = Depends(get_db)):
 
 @router.get("/{id_jadwal}")
 def get_jadwal(id_jadwal: str, db: Session = Depends(get_db)):
+    validate_id(id_jadwal, "JDW")
     jadwal = db.query(Jadwal_Praktik).filter(
         Jadwal_Praktik.ID_Jadwal == id_jadwal
     ).first()
@@ -25,6 +27,9 @@ def tambah_jadwal(
     kuota: int = 20,
     db: Session = Depends(get_db)
 ):
+    validate_id(ID_Jadwal, "JDW")
+    validate_id(ID_Dokter, "DOK")
+    validate_id(ID_Poli, "POL")
     jadwal_baru = Jadwal_Praktik(
         ID_Jadwal=ID_Jadwal, ID_Dokter=ID_Dokter,
         ID_Poli=ID_Poli, hari=hari,
@@ -43,6 +48,7 @@ def update_jadwal(
     kuota: int = None,
     db: Session = Depends(get_db)
 ):
+    validate_id(id_jadwal, "JDW")
     jadwal = db.query(Jadwal_Praktik).filter(
         Jadwal_Praktik.ID_Jadwal == id_jadwal
     ).first()
@@ -58,6 +64,7 @@ def update_jadwal(
 
 @router.delete("/{id_jadwal}")
 def hapus_jadwal(id_jadwal: str, db: Session = Depends(get_db)):
+    validate_id(id_jadwal, "JDW")
     jadwal = db.query(Jadwal_Praktik).filter(
         Jadwal_Praktik.ID_Jadwal == id_jadwal
     ).first()

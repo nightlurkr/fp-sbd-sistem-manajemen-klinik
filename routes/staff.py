@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database import get_db
 from models import Staff
+from utils import validate_id
 
 router = APIRouter()
 
@@ -11,6 +12,7 @@ def get_all_staff(db: Session = Depends(get_db)):
 
 @router.get("/{id_staff}")
 def get_staff(id_staff: str, db: Session = Depends(get_db)):
+    validate_id(id_staff, "STF")
     staff = db.query(Staff).filter(Staff.ID_Staff == id_staff).first()
     if not staff:
         raise HTTPException(status_code=404, detail="Staff tidak ditemukan")
@@ -22,6 +24,7 @@ def tambah_staff(
     jabatan: str = None,
     db: Session = Depends(get_db)
 ):
+    validate_id(ID_Staff, "STF")
     staff_baru = Staff(
         ID_Staff=ID_Staff, nama=nama,
         jabatan=jabatan, username=username,
@@ -39,6 +42,7 @@ def update_staff(
     password: str = None,
     db: Session = Depends(get_db)
 ):
+    validate_id(id_staff, "STF")
     staff = db.query(Staff).filter(Staff.ID_Staff == id_staff).first()
     if not staff:
         raise HTTPException(status_code=404, detail="Staff tidak ditemukan")
@@ -52,6 +56,7 @@ def update_staff(
 
 @router.delete("/{id_staff}")
 def hapus_staff(id_staff: str, db: Session = Depends(get_db)):
+    validate_id(id_staff, "STF")
     staff = db.query(Staff).filter(Staff.ID_Staff == id_staff).first()
     if not staff:
         raise HTTPException(status_code=404, detail="Staff tidak ditemukan")
