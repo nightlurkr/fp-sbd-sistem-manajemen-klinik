@@ -243,12 +243,55 @@ python -m uvicorn main:app --reload
 
 ## Alur Sistem
 
+GET /pasien/
 ```
-POST /antrian/                          -> daftar antrian, cek kuota, auto-nomor
-PUT  /antrian/{id}/panggil              -> status dalam_proses
-POST /kunjungan/dari-antrian/{id}       -> kunjungan otomatis, antrian selesai
-POST /rekam-medis/                      -> simpan rekam medis ke MongoDB
-POST /resep/                            -> buat resep, cek stok+expired, stok berkurang
-PUT  /kunjungan/{id}/selesai            -> tagihan otomatis terbuat
-PUT  /tagihan/{id}/bayar                -> pembayaran, status lunas
+SELECT * FROM Pasien;
+```
+
+POST /pasien/
+```
+INSERT INTO Pasien (ID_Pasien, nama, tanggal_lahir, ...) 
+VALUES ('PSN001', 'Budi', '2000-01-01', ...);
+```
+
+POST /antrian/ dengan kuota penuh
+```
+-- Cek dulu berapa antrian di jadwal itu
+SELECT COUNT(*) FROM Antrian WHERE ID_Jadwal = 'JDW001';
+-- Cek kuota_maks dari jadwal
+SELECT kuota_maks FROM Jadwal WHERE ID_Jadwal = 'JDW001';
+```
+
+GET /obat/stok-menipis
+```
+SELECT * FROM Obat WHERE stok <= stok_minimum;
+```
+
+POST /resep/ dengan obat expired
+```
+-- Cek expired_date obat dulu
+SELECT expired_date FROM Obat WHERE ID_Obat = 'OBT001';
+-- Kalau expired_date < hari ini → return HTTP 400, tidak ada INSERT
+```
+
+POST /rekam-medis/
+```
+js// MongoDB
+db.rekam_medis.insert_one({ id_kunjungan: "KNJ001", ... })
+```
+
+POST /info-obat/
+```
+js// MongoDB
+db.info_obat.insert_one({ id_obat: "OBT001", ... })
+```
+
+PUT /tagihan/{id}/bayar
+```
+-- Update status tagihan
+UPDATE Tagihan SET status_bayar = 'lunas' WHERE ID_Tagihan = 'TAG001';
+-- Insert pembayaran baru
+INSERT INTO Pembayaran (ID_Pembayaran, ID_Tagihan, tanggal_bayar, metode_bayar)
+VALUES ('PAY001', 'TAG001', '2026-06-18', 'tunai');
+
 ```
